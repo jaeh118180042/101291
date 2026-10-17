@@ -1,7 +1,9 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
+import matplotlib.pyplot as plt
+import matplotlib
+
+matplotlib.use('Agg')  # 비대화형 백엔드 사용
 
 # 페이지 설정
 st.set_page_config(page_title="서울 기온 분석", page_icon="🌡️")
@@ -26,7 +28,7 @@ def load_data():
     # 1950-1953 결측치 제외
     df = df[~df['연도'].isin([1950, 1951, 1952, 1953])]
     
-    # 결측치 제거 (기온 데이터)
+    # 결측치 제거
     df = df.dropna(subset=['평균기온(℃)', '최저기온(℃)', '최고기온(℃)'])
     
     return df
@@ -64,39 +66,26 @@ filtered_df = yearly_df[
     (yearly_df['연도'] <= selected_years[1])
 ]
 
-# 그래프 그리기
-fig = go.Figure()
+# 그래프 그리기 (matplotlib)
+fig, ax = plt.subplots(figsize=(10, 5))
 
-# 연도별 평균기온 선
-fig.add_trace(go.Scatter(
-    x=filtered_df['연도'],
-    y=filtered_df['연평균기온'],
-    mode='lines+markers',
-    name='연도별 평균기온',
-    line=dict(color='#2563EB', width=2),
-    marker=dict(size=5)
-))
+# 연도별 평균기온
+ax.plot(filtered_df['연도'], filtered_df['연평균기온'], 
+        color='#2563EB', linewidth=2, marker='o', markersize=4, label='연도별 평균기온')
 
-# 5년 이동평균선
-fig.add_trace(go.Scatter(
-    x=filtered_df['연도'],
-    y=filtered_df['5년이동평균'],
-    mode='lines',
-    name='5년 이동평균',
-    line=dict(color='#DC2626', width=3, dash='dash')
-))
+# 5년 이동평균
+ax.plot(filtered_df['연도'], filtered_df['5년이동평균'], 
+        color='#DC2626', linewidth=2.5, linestyle='--', label='5년 이동평균')
 
-fig.update_layout(
-    title=f"서울 연도별 평균기온 ({selected_years[0]}년 ~ {selected_years[1]}년)",
-    xaxis_title="연도",
-    yaxis_title="기온 (℃)",
-    hovermode='x unified',
-    template='plotly_white',
-    height=500,
-    legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1)
-)
+ax.set_title(f"서울 연도별 평균기온 ({selected_years[0]}년 ~ {selected_years[1]}년)", fontsize=14)
+ax.set_xlabel("연도")
+ax.set_ylabel("기온 (℃)")
+ax.legend(loc='upper right')
+ax.grid(True, alpha=0.3)
 
-st.plotly_chart(fig, use_container_width=True)
+plt.tight_layout()
+
+st.pyplot(fig)
 
 # 선택 구간 통계 표시
 st.subheader("📈 선택 구간 통계")
@@ -105,33 +94,21 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
     avg_temp = filtered_df['연평균기온'].mean()
-    st.metric(
-        label="평균 기온",
-        value=f"{avg_temp:.2f} ℃",
-        delta=None
-    )
+    st.metric(label="평균 기온", value=f"{avg_temp:.2f} ℃")
 
 with col2:
     max_temp = filtered_df['연최고기온(평균)'].mean()
-    st.metric(
-        label="최고 기온 (연평균)",
-        value=f"{max_temp:.2f} ℃",
-        delta=None
-    )
+    st.metric(label="최고 기온 (연평균)", value=f"{max_temp:.2f} ℃")
 
 with col3:
     min_temp = filtered_df['연최저기온(평균)'].mean()
-    st.metric(
-        label="최저 기온 (연평균)",
-        value=f"{min_temp:.2f} ℃",
-        delta=None
-    )
+    st.metric(label="최저 기온 (연평균)", value=f"{min_temp:.2f} ℃")
 
 # 데이터 범위 정보
 st.caption(f"데이터 범위: {min_year}년 ~ {max_year}년 (총 {len(yearly_df)}개년)")
 st.caption("※ 1950년~1953년 데이터는 분석에서 제외되었습니다.")
 
-# 원시 데이터 표시 (선택 사항)
+# 원시 데이터 표시
 with st.expander("📋 연도별 상세 데이터 보기"):
     st.dataframe(
         filtered_df[['연도', '연평균기온', '5년이동평균']].style.format({
