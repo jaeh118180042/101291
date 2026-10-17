@@ -1,9 +1,5 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib
-
-matplotlib.use('Agg')  # 비대화형 백엔드 사용
 
 # 페이지 설정
 st.set_page_config(page_title="서울 기온 분석", page_icon="🌡️")
@@ -66,26 +62,20 @@ filtered_df = yearly_df[
     (yearly_df['연도'] <= selected_years[1])
 ]
 
-# 그래프 그리기 (matplotlib)
-fig, ax = plt.subplots(figsize=(10, 5))
+# Streamlit 기본 라인 차트 (plotly 불필요)
+st.subheader("📈 연도별 평균기온 추이")
 
-# 연도별 평균기온
-ax.plot(filtered_df['연도'], filtered_df['연평균기온'], 
-        color='#2563EB', linewidth=2, marker='o', markersize=4, label='연도별 평균기온')
+# 차트에 표시할 데이터 준비 (연도를 인덱스로)
+chart_data = filtered_df.set_index('연도')[['연평균기온', '5년이동평균']]
 
-# 5년 이동평균
-ax.plot(filtered_df['연도'], filtered_df['5년이동평균'], 
-        color='#DC2626', linewidth=2.5, linestyle='--', label='5년 이동평균')
+st.line_chart(
+    chart_data,
+    use_container_width=True,
+    color=['#2563EB', '#DC2626']
+)
 
-ax.set_title(f"서울 연도별 평균기온 ({selected_years[0]}년 ~ {selected_years[1]}년)", fontsize=14)
-ax.set_xlabel("연도")
-ax.set_ylabel("기온 (℃)")
-ax.legend(loc='upper right')
-ax.grid(True, alpha=0.3)
-
-plt.tight_layout()
-
-st.pyplot(fig)
+# 범례 설명
+st.caption("🔵 연도별 평균기온  |  🔴 5년 이동평균")
 
 # 선택 구간 통계 표시
 st.subheader("📈 선택 구간 통계")
